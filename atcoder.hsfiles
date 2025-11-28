@@ -148,8 +148,8 @@ debug = () /= ()
 type I = Int
 type O = Int
 
-type Dom   = ()
-type Codom = ()
+type Dom   = (Int, [Int])
+type Codom = Int
 
 type Solver = Dom -> Codom
 
@@ -159,15 +159,79 @@ solve = \ case
 
 decode :: [[I]] -> Dom
 decode = \ case
-    _:_ -> ()
+    [n]:as:_ -> (n, as)
     _   -> invalid $ "toDom: " ++ show @Int __LINE__
 
 encode :: Codom -> [[O]]
 encode = \ case
-    _rr -> [[]]
+    r -> [[r]]
 
 main :: IO ()
 main = B.interact (detokenize . encode . solve . decode . entokenize)
+
+{- Common Decode Patterns (Reference) -}
+{-
+Pattern 1: Single Value
+  Input:  N
+  type Dom = Int
+  decode = \case
+      [n]:_ -> n
+      _     -> invalid $ "decode: " ++ show @Int __LINE__
+
+Pattern 2: N + Array
+  Input:  N
+          A_1 A_2 ... A_N
+  type Dom = (Int, [Int])
+  decode = \case
+      [n]:as:_ -> (n, as)
+      _        -> invalid $ "decode: " ++ show @Int __LINE__
+
+Pattern 3: Direct Array
+  Input:  A_1 A_2 ... A_N
+  type Dom = [Int]
+  decode = \case
+      as:_ -> as
+      _    -> invalid $ "decode: " ++ show @Int __LINE__
+
+Pattern 4: Multiple Parameters
+  Input:  N M
+  type Dom = (Int, Int)
+  decode = \case
+      [n, m]:_ -> (n, m)
+      _        -> invalid $ "decode: " ++ show @Int __LINE__
+
+Pattern 5: N Pairs
+  Input:  N
+          A_1 B_1
+          ...
+          A_N B_N
+  type Dom = [(Int, Int)]
+  decode = \case
+      _:pairs -> map toPair pairs
+      _       -> invalid $ "decode: " ++ show @Int __LINE__
+
+Pattern 6: Grid (H×W)
+  Input:  H W
+          S_{1,1}...S_{1,W}
+          ...
+          S_{H,1}...S_{H,W}
+  type I = Char
+  type Dom = (Int, Int, [[Char]])
+  decode = \case
+      hw:grid ->
+          let [h, w] = map digitToInt hw
+          in (h, w, grid)
+      _ -> invalid $ "decode: " ++ show @Int __LINE__
+
+Pattern 7: Two Arrays
+  Input:  N M
+          A_1 ... A_N
+          B_1 ... B_M
+  type Dom = (Int, Int, [Int], [Int])
+  decode = \case
+      [n, m]:as:bs:_ -> (n, m, as, bs)
+      _              -> invalid $ "decode: " ++ show @Int __LINE__
+-}
 
 class AsToken a where
     readB :: B.ByteString -> a
