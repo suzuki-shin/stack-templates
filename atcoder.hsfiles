@@ -155,7 +155,7 @@ type Solver = Dom -> Codom
 
 solve :: Solver
 solve = \ case
-    () -> ()
+    (a, _) -> a
 
 decode :: [[I]] -> Dom
 decode = \ case
