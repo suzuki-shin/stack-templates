@@ -329,6 +329,9 @@ tupleToList2 (x, y) = [x, y]
 tupleToList3 :: (a, a, a) -> [a]
 tupleToList3 (x, y, z) = [x, y, z]
 
+yn :: Bool -> String
+yn = bool "No" "Yes"
+
 {- End Bonsai -}
 
 {-# START_FILE app/zzz/add-entry/Main.hs #-}
