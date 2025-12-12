@@ -126,7 +126,9 @@ import Data.Ord
 import Control.Arrow
 import Control.Applicative
 import Control.Monad
-import Data.Array
+import Data.Array.IArray
+import Data.Array (Array)
+import Data.Array.Unboxed (UArray)
 import Data.Bits
 import Data.Bool
 import Data.Char
@@ -136,6 +138,7 @@ import Text.Printf
 
 import Data.IntMap qualified as IM
 import Data.IntSet qualified as IS
+import Data.Ix
 import Data.Map qualified as M
 import Data.Set qualified as S
 import Data.Tree qualified as T
@@ -148,7 +151,7 @@ import Data.Vector.Generic qualified as VG
 import Debug.Trace qualified as Debug
 
 debug :: Bool
-debug = () /= ()
+debug = False
 
 type I = Int
 type O = Int
@@ -158,64 +161,28 @@ type Codom = Int
 
 type Solver = Dom -> Codom
 
+{-# INLINE solve #-}
 solve :: Solver
-solve = \ case
-    (a, _) -> a
+solve x =
+  trace (show x) def
 
+{-# INLINE decode #-}
 decode :: [[I]] -> Dom
 decode = \ case
     [n]:as:_ -> (n, as)
     _   -> invalid $ "toDom: " ++ show @Int __LINE__
 
+{-# INLINE encode #-}
 encode :: Codom -> [[O]]
-encode = \ case
-    r -> [[r]]
+encode r = [[r]]
+-- encode = map (:[])
 
 main :: IO ()
 main = B.interact (detokenize . encode . solve . decode . entokenize)
 
-{- Common Decode Patterns (Reference) -}
+{- Decode Patterns -}
 {-
-Pattern 1: Single Value
-  Input:  N
-  type Dom = Int
-  decode = \case
-      [n]:_ -> n
-      _     -> invalid $ "decode: " ++ show @Int __LINE__
-
-Pattern 2: N + Array
-  Input:  N
-          A_1 A_2 ... A_N
-  type Dom = (Int, [Int])
-  decode = \case
-      [n]:as:_ -> (n, as)
-      _        -> invalid $ "decode: " ++ show @Int __LINE__
-
-Pattern 3: Direct Array
-  Input:  A_1 A_2 ... A_N
-  type Dom = [Int]
-  decode = \case
-      as:_ -> as
-      _    -> invalid $ "decode: " ++ show @Int __LINE__
-
-Pattern 4: Multiple Parameters
-  Input:  N M
-  type Dom = (Int, Int)
-  decode = \case
-      [n, m]:_ -> (n, m)
-      _        -> invalid $ "decode: " ++ show @Int __LINE__
-
-Pattern 5: N Pairs
-  Input:  N
-          A_1 B_1
-          ...
-          A_N B_N
-  type Dom = [(Int, Int)]
-  decode = \case
-      _:pairs -> map toPair pairs
-      _       -> invalid $ "decode: " ++ show @Int __LINE__
-
-Pattern 6: Grid (H×W)
+Pattern: Grid (H×W)
   Input:  H W
           S_{1,1}...S_{1,W}
           ...
@@ -227,15 +194,16 @@ Pattern 6: Grid (H×W)
           let [h, w] = map digitToInt hw
           in (h, w, grid)
       _ -> invalid $ "decode: " ++ show @Int __LINE__
-
-Pattern 7: Two Arrays
-  Input:  N M
-          A_1 ... A_N
-          B_1 ... B_M
-  type Dom = (Int, Int, [Int], [Int])
-  decode = \case
-      [n, m]:as:bs:_ -> (n, m, as, bs)
-      _              -> invalid $ "decode: " ++ show @Int __LINE__
+-}
+{- Encode Pattern -}
+{-
+Pattern: リストを改行区切りにして出力
+Output: win
+        draw
+        lose
+type O = String
+type Codom = [String]
+encode = map (:[])
 -}
 
 class AsToken a where
@@ -318,6 +286,17 @@ invalid msg = error $ msg ++ ", invalid input"
 
 {- Start Bonsai -}
 
+{- 古いAtcoder環境だとdata-defaultがないため -}
+class Default a where
+  def :: a
+instance Default Int where def = 0
+instance Default Double where def = 0.0
+instance Default Bool where def = False
+instance Default [a] where def = []
+instance Default () where def = ()
+instance (Default a, Default b) => Default (a, b) where def = (def, def)
+instance (Default a, Default b, Default c) => Default (a, b, c) where def = (def, def, def)
+
 -- 偶数番目の要素を抽出
 evenPositions :: [a] -> [a]
 evenPositions = positionsBy even
@@ -347,8 +326,52 @@ instance ToVector B.ByteString Char where
 vLength :: (VG.Vector v e) => v e -> Int
 vLength = VFB.length . VG.stream
 
+{-# INLINE yn #-}
 yn :: Bool -> String
 yn = bool "No" "Yes"
+
+{- 累積和 -}
+-- | 1 次元の累積和配列を作成する。
+-- >>> csum1 4 [1..10] :: UArray Int Int
+-- array (0,4) [(0,0),(1,1),(2,3),(3,6),(4,10)]
+csum1 :: (IArray UArray e, Num e) => Int -> [e] -> UArray Int e
+csum1 n = listArray (0, n) . scanl' (+) 0
+{-# INLINE csum1 #-}
+
+-- | 1 次元の累積和配列を元に区間和を求める。
+-- >>> let csum = csum1 4 [1..10] :: UArray Int Int
+-- >>> csum +! (1, 2)
+-- 5
+(+!) :: (IArray UArray e, Num e) => UArray Int e -> (Int, Int) -> e
+(+!) ary (!l, !r) = ary ! succ r - ary ! l
+{-# INLINE (+!) #-}
+
+-- | 2 次元の累積和配列を作成する。
+-- 入力: (H, W) と HxW のグリッドデータ
+-- 出力: ((0,0), (H,W)) の範囲を持つ累積和配列
+-- >>> csum2 (2,2) [[1,2],[3,4]] :: UArray (Int,Int) Int
+-- array ((0,0),(2,2)) [
+--  ((0,0),0),((0,1),0),((0,2),0),
+--  ((1,0),0),((1,1),1),((1,2),3),
+--  ((2,0),0),((2,1),4),((2,2),10)]
+csum2 :: (IArray UArray e, Num e) => (Int, Int) -> [[e]] -> UArray (Int, Int) e
+csum2 (h, w) rows = listArray ((0, 0), (h, w)) flatList
+  where
+    rowSums = map (scanl (+) 0) rows
+    zeroRow = replicate (w + 1) 0
+    colSums = scanl (zipWith (+)) zeroRow rowSums
+    flatList = concat colSums
+{-# INLINE csum2 #-}
+
+-- | 2 次元の累積和配列を元に矩形和を求める。 0-based index
+-- 左上 (r1, c1), 右下 (r2, c2)
+-- >>> let csum = csum2 (2,2) [[1,2],[3,4]] :: UArray (Int,Int) Int
+-- >>> csum +!! ((0,0),(1,0))
+-- 4
+(+!!) :: (IArray UArray e, Num e) => UArray (Int, Int) e -> ((Int, Int), (Int, Int)) -> e
+(+!!) ary ((r1, c1), (r2, c2)) =
+  ary ! (r2 + 1, c2 + 1) - ary ! (r1, c2 + 1) - ary ! (r2 + 1, c1) + ary ! (r1, c1)
+{-# INLINE (+!!) #-}
 
 {- End Bonsai -}
 
