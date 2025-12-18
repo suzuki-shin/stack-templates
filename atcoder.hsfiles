@@ -93,19 +93,6 @@ case $old in
         ;;
 esac
 
-read -p "Use default app/Main.hs instead of atcoder-cli template? (y/N): " cptmpl
-
-CONFIG_DIR="$(acc config-dir 2>/dev/null || echo "$HOME/Library/Preferences/atcoder-cli-nodejs")"
-
-case $cptmpl in
-    [yY]*)
-        cp app/Main.hs "$CONFIG_DIR/haskell"
-        ;;
-    *)
-        cp "$CONFIG_DIR/haskell/Main.hs" app/
-        ;;
-esac
-
 stack build
 
 {-# START_FILE app/Main.hs #-}
@@ -331,20 +318,35 @@ yn :: Bool -> String
 yn = bool "No" "Yes"
 
 {- 累積和 -}
--- | 1 次元の累積和配列を作成する。
--- >>> csum1 4 [1..10] :: UArray Int Int
--- array (0,4) [(0,0),(1,1),(2,3),(3,6),(4,10)]
-csum1 :: (IArray UArray e, Num e) => Int -> [e] -> UArray Int e
-csum1 n = listArray (0, n) . scanl' (+) 0
+-- | 1次元の累積和（Vector版）を作成する
+-- >>> csum1 $ VU.generate 4 (+1)
+-- [0,1,3,6,10]
 {-# INLINE csum1 #-}
+csum1 :: (Num a, VU.Unbox a) => VU.Vector a -> VU.Vector a
+csum1 = VU.scanl' (+) 0
 
--- | 1 次元の累積和配列を元に区間和を求める。
--- >>> let csum = csum1 4 [1..10] :: UArray Int Int
--- >>> csum +! (1, 2)
+-- | 1 次元の累積和配列を元に区間和を求める。(1-based。問題の(l,r)をそのまま渡せば良い)
+-- >>> csum +! (2, 3)
 -- 5
-(+!) :: (IArray UArray e, Num e) => UArray Int e -> (Int, Int) -> e
-(+!) ary (!l, !r) = ary ! succ r - ary ! l
 {-# INLINE (+!) #-}
+(+!) :: (Num a, VU.Unbox a) => VU.Vector a -> (Int, Int) -> a
+(+!) csum (!l, !r) = csum VG.! r - csum VG.! (l - 1)
+
+-- | いもす法（Array版）
+-- >>> let lrs = [(2,3),(3,6),(5,7),(3,7),(1,5)] -- [(li, ri)] 参加者iがli日目からri日目まで参加する
+-- >>> imosA 8 lrs
+-- [1,2,4,3,4,3,2,0]
+{-# INLINE imosA #-}
+imosA :: Int -> [(Int, Int)] -> [Int]
+imosA d lrs = elems result
+  where
+    diffArray :: UArray Int Int
+    diffArray =
+      accumArray (+) 0 (0, d + 1) $
+      concatMap (\(l, r) -> [(l, 1), (r + 1, -1)]) lrs
+    -- 累積和
+    result :: UArray Int Int
+    result = listArray (1, d) $ drop 2 $ scanl (+) 0 (elems diffArray)
 
 -- | 2 次元の累積和配列を作成する。
 -- 入力: (H, W) と HxW のグリッドデータ
