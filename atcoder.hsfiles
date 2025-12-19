@@ -169,18 +169,28 @@ main = B.interact (detokenize . encode . solve . decode . entokenize)
 
 {- Decode Patterns -}
 {-
-Pattern: Grid (H×W)
-  Input:  H W
-          S_{1,1}...S_{1,W}
-          ...
-          S_{H,1}...S_{H,W}
-  type I = Char
-  type Dom = (Int, Int, [[Char]])
-  decode = \case
-      hw:grid ->
-          let [h, w] = map digitToInt hw
-          in (h, w, grid)
-      _ -> invalid $ "decode: " ++ show @Int __LINE__
+-- Pattern: Grid (H×W)
+--  Input:  H W
+--          S_{1,1}...S_{1,W}
+--          ...
+--          S_{H,1}...S_{H,W}
+type I = Char
+type Dom = (Int, Int, [[Char]])
+decode = \case
+    hw:grid ->
+        let [h, w] = map digitToInt hw
+        in (h, w, grid)
+    _ -> invalid $ "decode: " ++ show @Int __LINE__
+
+-- Pattern: Int & String
+-- Input: 5
+--        WEEWW
+type I = Char
+type Dom (Int, String)
+decode :: [[I]] -> Dom
+decode = \ case
+    n:as:_ -> (read n, as)
+    _   -> invalid $ "toDom: " ++ show @Int __LINE__
 -}
 {- Encode Pattern -}
 {-
