@@ -96,8 +96,8 @@ esac
 stack build
 
 {-# START_FILE app/Main.hs #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE GHC2021 #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LexicalNegation #-}
 {-# LANGUAGE LambdaCase, MultiWayIf #-}
@@ -135,6 +135,8 @@ import Data.Vector.Unboxed qualified as VU
 import Data.Vector.Fusion.Bundle qualified as VFB
 import Data.Vector.Generic qualified as VG
 
+import AtCoder.Extra.Bisect qualified as AB
+
 import Debug.Trace qualified as Debug
 
 debug :: Bool
@@ -150,8 +152,7 @@ type Solver = Dom -> Codom
 
 {-# INLINE solve #-}
 solve :: Solver
-solve x =
-  trace (show x) def
+solve x = trace (show x) def
 
 {-# INLINE decode #-}
 decode :: [[I]] -> Dom
@@ -385,6 +386,27 @@ csum2 (h, w) rows = listArray ((0, 0), (h, w)) flatList
   ary ! (r2 + 1, c2 + 1) - ary ! (r1, c2 + 1) - ary ! (r2 + 1, c1) + ary ! (r1, c1)
 {-# INLINE (+!!) #-}
 
+{- しゃくとり法 -}
+-- p: 条件を満たすかどうかを判定する関数 (l -> r -> Bool)
+-- lls: 左端 L が指す要素以降のリスト
+-- rrs: 右端 R が指す要素以降のリスト
+-- len: 現在の条件を満たす区間 [L, R) の要素数 (Rを含まない)
+shakutori :: (Int -> Int -> Bool) -> [Int] -> [Int] -> Int -> [Int]
+-- 右端 R がリストの終端に達した場合
+-- 以降のすべての L について、残りの len がそのまま解になる
+-- L を進めるごとに len を減らしていく
+shakutori p (_ : ls) [] len = len : shakutori p ls [] (len - 1)
+shakutori p lls@(l : ls) rrs@(r : rs) len
+  -- 条件を満たすなら、右端 R を右へ進める
+  -- 区間の長さ len は +1 される
+  | p l r = shakutori p lls rs (len + 1)
+  -- 条件を満たさなくなった場合、現在の L に対するペアの数は len 個 (A[L]...A[R-1])
+  -- len を結果リストに追加し、左端 L を右へ進める
+  -- L が進むと区間の長さ len は -1 される
+  | otherwise = len : shakutori p ls rrs (len - 1)
+-- 左端 L が終端に達したら終了
+shakutori _ _ _ _ = []
+
 {- End Bonsai -}
 
 {-# START_FILE app/zzz/add-entry/Main.hs #-}
@@ -510,6 +532,7 @@ dependencies:
 - base >= 4.7 && < 5
 - adjunctions
 - array
+- ac-library-hs
 - attoparsec
 - bifunctors
 - binary
