@@ -387,6 +387,7 @@ csum2 (h, w) rows = listArray ((0, 0), (h, w)) flatList
 {-# INLINE (+!!) #-}
 
 {- しゃくとり法 -}
+{-# INLINE shakutori #-}
 -- p: 条件を満たすかどうかを判定する関数 (l -> r -> Bool)
 -- lls: 左端 L が指す要素以降のリスト
 -- rrs: 右端 R が指す要素以降のリスト
