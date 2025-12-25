@@ -116,6 +116,7 @@ import Control.Monad
 import Data.Array.IArray
 import Data.Array (Array)
 import Data.Array.Unboxed (UArray)
+import Data.Bifunctor (bimap)
 import Data.Bits
 import Data.Bool
 import Data.Char
@@ -131,6 +132,7 @@ import Data.Set qualified as S
 import Data.Tree qualified as T
 import Data.Sequence qualified as Q
 import Data.Vector qualified as V
+import Data.Vector.Algorithms.Intro qualified as VAI
 import Data.Vector.Unboxed qualified as VU
 import Data.Vector.Fusion.Bundle qualified as VFB
 import Data.Vector.Generic qualified as VG
