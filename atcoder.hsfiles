@@ -150,9 +150,6 @@ import Data.Vector.Unboxed qualified as VU
 import Debug.Trace qualified as Debug
 import Text.Printf
 
-debug :: Bool
-debug = False
-
 type I = Int
 
 type O = Int
@@ -161,6 +158,9 @@ type Dom   = (Int, [Int])
 type Codom = Int
 
 type Solver = Dom -> Codom
+
+debug :: Bool
+debug = False
 
 {-# INLINE solve #-}
 solve :: Solver
