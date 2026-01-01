@@ -111,7 +111,9 @@ stack build
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+{-# HLINT ignore "Unused LANGUAGE pragma" #-}
 
 module Main where
 
@@ -123,8 +125,8 @@ import Control.Monad
 import Control.Monad.ST (ST, runST)
 import Data.Array (Array)
 import Data.Array.IArray
-import Data.Array.MArray (readArray, writeArray)
-import Data.Array.ST (STArray, newArray, runSTArray)
+import Data.Array.MArray (newArray_, readArray, writeArray)
+import Data.Array.ST (STArray, STUArray, newArray, runSTArray)
 import Data.Array.Unboxed (UArray)
 import Data.Bifunctor (bimap)
 import Data.Bits
@@ -160,7 +162,7 @@ type Codom = Int
 type Solver = Dom -> Codom
 
 debug :: Bool
-debug = False
+debug = True
 
 {-# INLINE solve #-}
 solve :: Solver
@@ -168,9 +170,9 @@ solve x = trace (show x) def
 
 {-# INLINE decode #-}
 decode :: [[I]] -> Dom
-decode = \ case
-    [n]:as:_ -> (n, as)
-    _   -> invalid $ "toDom: " ++ show @Int __LINE__
+decode = \case
+  [n] : as : _ -> (n, as)
+  _ -> invalid $ "toDom: " ++ show @Int __LINE__
 
 {-# INLINE encode #-}
 encode :: Codom -> [[O]]
@@ -217,43 +219,43 @@ encode = map (:[])
 -}
 
 class AsToken a where
-    readB :: B.ByteString -> a
-    readBs :: B.ByteString -> [a]
-    readBs = map readB . B.words
-    entokenize :: B.ByteString -> [[a]]
-    entokenize = map readBs . B.lines
+  readB :: B.ByteString -> a
+  readBs :: B.ByteString -> [a]
+  readBs = map readB . B.words
+  entokenize :: B.ByteString -> [[a]]
+  entokenize = map readBs . B.lines
 
-    showB :: a -> B.ByteString
-    showBs :: [a] -> B.ByteString
-    showBs = B.unwords . map showB
-    detokenize :: [[a]] -> B.ByteString
-    detokenize = B.unlines . map showBs
+  showB :: a -> B.ByteString
+  showBs :: [a] -> B.ByteString
+  showBs = B.unwords . map showB
+  detokenize :: [[a]] -> B.ByteString
+  detokenize = B.unlines . map showBs
 
 instance AsToken B.ByteString where
-    readB = id
-    showB = id
+  readB = id
+  showB = id
 
 instance AsToken Int where
-    readB = readInt
-    showB = showInt
+  readB = readInt
+  showB = showInt
 
 instance AsToken Integer where
-    readB = readInteger
-    showB = showInteger
+  readB = readInteger
+  showB = showInteger
 
 instance AsToken String where
-    readB = readStr
-    showB = showStr
+  readB = readStr
+  showB = showStr
 
 instance AsToken Double where
-    readB = readDbl
-    showB = showDbl
+  readB = readDbl
+  showB = showDbl
 
 instance AsToken Char where
-    readB = B.head
-    showB = B.singleton
-    readBs = B.unpack
-    showBs = B.pack
+  readB = B.head
+  showB = B.singleton
+  readBs = B.unpack
+  showBs = B.pack
 
 readInt :: B.ByteString -> Int
 readInt = fst . fromJust . B.readInt
@@ -281,10 +283,11 @@ showDbl = B.pack . show
 
 {- debug -}
 trace :: String -> a -> a
-trace | debug     = Debug.trace
-      | otherwise = const id
+trace
+  | debug = Debug.trace
+  | otherwise = const id
 
-tracing :: Show a => a -> a
+tracing :: (Show a) => a -> a
 tracing = trace . show <*> id
 
 {- error -}
@@ -299,12 +302,19 @@ invalid msg = error $ msg ++ ", invalid input"
 {- 古いAtcoder環境だとdata-defaultがないため -}
 class Default a where
   def :: a
+
 instance Default Int where def = 0
+
 instance Default Double where def = 0.0
+
 instance Default Bool where def = False
+
 instance Default [a] where def = []
+
 instance Default () where def = ()
+
 instance (Default a, Default b) => Default (a, b) where def = (def, def)
+
 instance (Default a, Default b, Default c) => Default (a, b, c) where def = (def, def, def)
 
 {-# INLINE vLength #-}
@@ -316,6 +326,7 @@ yn :: Bool -> String
 yn = bool "No" "Yes"
 
 {- 累積和 -}
+
 -- | 1次元の累積和（Vector版）を作成する
 -- >>> csum1 $ VU.generate 4 (+1)
 -- [0,1,3,6,10]
@@ -341,7 +352,7 @@ imosA d lrs = elems result
     diffArray :: UArray Int Int
     diffArray =
       accumArray (+) 0 (0, d + 1) $
-      concatMap (\(l, r) -> [(l, 1), (r + 1, -1)]) lrs
+        concatMap (\(l, r) -> [(l, 1), (r + 1, -1)]) lrs
     -- 累積和
     result :: UArray Int Int
     result = listArray (1, d) $ drop 2 $ scanl (+) 0 (elems diffArray)
@@ -408,6 +419,7 @@ newtype MaxPlus = MaxPlus {unMaxPlus :: Int} deriving (Eq, Ord, Show)
 newtype MinPlus = MinPlus {unMinPlus :: Int} deriving (Eq, Ord, Show)
 
 newtype Boolean = Boolean {unBoolean :: Bool} deriving (Eq, Ord, Show)
+
 -- 通常の数え上げ（Int）
 newtype Count = Count {getCount :: Int} deriving (Eq, Show)
 
@@ -586,18 +598,26 @@ data DPProblem p sc = DPProblem
 {-# INLINE dpSolve #-}
 dpSolve :: forall i sc s. (Semiring sc, Ix i) => DPProblem i sc -> ST s sc
 dpSolve dp = do
-  memo <- newArray (getRange dp) Nothing :: ST s (STArray s i (Maybe sc))
-  go (start dp) memo
+  let rng = getRange dp
+  memo <- newArray_ rng :: ST s (STArray s i sc)
+  visited <- newArray rng False :: ST s (STUArray s i Bool)
+
+  go (start dp) memo visited
   where
-    go p memo
+    go p memo visited
       | Just val <- isTrivial dp p = return val
       | otherwise = do
-          res <- readArray memo p
-          case res of
-            Just val -> return val
-            Nothing -> do
-              ret <- foldM (\acc (s, sp) -> (<+>) acc . (<.>) s <$> go sp memo) zero (subproblems dp p)
-              writeArray memo p (Just ret)
+          isVisited <- readArray visited p
+          if isVisited
+            then readArray memo p
+            else do
+              let f acc (s, sp) = do
+                    v <- go sp memo visited
+                    return $! acc <+> (s <.> v)
+
+              ret <- foldM f zero (subproblems dp p)
+              writeArray memo p ret
+              writeArray visited p True
               return ret
 
 {- End Bonsai -}
