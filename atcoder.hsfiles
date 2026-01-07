@@ -125,8 +125,8 @@ import Control.Monad
 import Control.Monad.ST (ST, runST)
 import Data.Array (Array)
 import Data.Array.IArray
-import Data.Array.MArray (newArray_, readArray, writeArray)
-import Data.Array.ST (STArray, STUArray, newArray, runSTArray)
+import Data.Array.MArray (newArray, newArray_, readArray, writeArray)
+import Data.Array.ST (STArray, STUArray, runSTArray)
 import Data.Array.Unboxed (UArray)
 import Data.Bifunctor (bimap)
 import Data.Bits
