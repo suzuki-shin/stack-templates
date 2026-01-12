@@ -668,6 +668,20 @@ asSTU = id
 newSTUArray :: (MArray (STUArray s) e (ST s), Ix i) => (i, i) -> e -> ST s (STUArray s i e)
 newSTUArray b v = asSTU $ newArray b v
 
+-- | 部分文字列の取得 0-indexed で開始位置を指定、指定した長さの部分文字列を返す
+-- >>> substring 0 5 "Hello, World"
+-- "Hello"
+{-# INLINE substring #-}
+substring :: Int -> Int -> String -> String
+substring start len = take len . drop start
+
+-- | s に含まれる長さ k の部分文字列をすべて返す　　０（NK)
+-- >>> substringsK 3 "TOYOTA"
+-- ["TOY","OYO","YOT","OTA"]
+{-# INLINE substringsK #-}
+substringsK :: Int -> String -> [String]
+substringsK k s = map (take k) $ take (length s - k + 1) $ tails s
+
 {- End Bonsai -}
 
 {-# START_FILE app/zzz/add-entry/Main.hs #-}
