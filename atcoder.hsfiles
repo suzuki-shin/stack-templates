@@ -112,6 +112,7 @@ stack build
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
 {-# HLINT ignore "Unused LANGUAGE pragma" #-}
 
@@ -721,6 +722,7 @@ maximumDef def' xs
   | null xs = def'
   | otherwise = maximum xs
 
+#if FALSE
 
 {- ModInt -}
 modBase :: Int
@@ -811,6 +813,8 @@ nHr :: Int -> Int -> ModInt
 nHr n r
   | n == 0 && r == 0 = ModInt 1
   | otherwise = nCr (n + r - 1) r
+
+#endif
 
 {- End Bonsai -}
 
