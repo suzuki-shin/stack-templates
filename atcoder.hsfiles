@@ -750,6 +750,14 @@ sortOn' f =
   VU.toList . VU.map snd . VU.modify (VAI.sortBy (comparing fst)) .
   VU.map (\x -> let y = f x in y `seq` (y, x)) . VU.fromList
 
+{-# INLINE count #-}
+count :: Eq a => a -> [a] -> Int
+count a as = length $ filter (== a) as
+
+{-# INLINE countIf #-}
+countIf :: (a -> Bool) -> [a] -> Int
+countIf f as = length $ filter f as
+
 {-- bisect --}
 bisect :: (Integral a) => a -> a -> (a -> Bool) -> (a, a)
 bisect ng' ok' f = worker ng' ok'
