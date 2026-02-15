@@ -120,6 +120,7 @@ stack build
 module Main where
 
 import AtCoder.Extra.Bisect qualified as AB
+import AtCoder.SegTree qualified as Seg
 import Control.Applicative
 import Control.Arrow hiding ((<+>))
 import Control.Arrow qualified as Arrow
