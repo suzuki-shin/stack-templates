@@ -1098,17 +1098,19 @@ stack exec -- ghci app/$CURRENT_STACK_EXE_ENTRY/Main.hs
 {-# START_FILE initializing #-}
 #!/bin/bash
 
-acc new {{name}}
-mv {{name}}/contest.acc.json ./
+CONTEST_ID={{contest-id}}{{^contest-id}}{{name}}{{/contest-id}}
+
+acc new $CONTEST_ID
+mv $CONTEST_ID/contest.acc.json ./
 
 jq -r '.tasks[].id' ./contest.acc.json | while read tid; do
-  mv {{name}}/${tid: -1} app/
+  mv $CONTEST_ID/${tid: -1} app/
   ./setting ${tid: -1}
 done
 
-rmdir {{name}}
+rmdir $CONTEST_ID
 cp contest.acc.json app/
-ln -s ./app ./{{name}}
+ln -s ./app ./$CONTEST_ID
 
 ./resetting a
 
