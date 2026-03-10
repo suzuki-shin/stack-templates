@@ -13,6 +13,7 @@ core
 *.hi
 *.o
 *~
+.github
 
 {-# START_FILE ChangeLog.md #-}
 # ChangeLog for {{name}}
@@ -58,6 +59,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import Distribution.Simple
 main = defaultMain
 
+{-# START_FILE stack.yaml #-}
+snapshot: lts-23.28
+
+packages:
+- .
+
+extra-deps:
+- ac-library-hs-1.5.3.1
+
 {-# START_FILE stack.yaml.cur #-}
 snapshot: lts-23.28
 
@@ -93,6 +103,24 @@ case $old in
         ;;
 esac
 
+# Update .code-workspace to point to this contest directory for HLS
+CONTEST_DIR=$(basename "$PWD")
+WORKSPACE_FILE="$(dirname "$PWD")/atcoder.code-workspace"
+cat > "$WORKSPACE_FILE" <<EOF
+{
+  "folders": [
+    {
+      "path": "$CONTEST_DIR"
+    }
+  ],
+  "settings": {
+    "haskell.manageHLS": "PATH",
+    "haskell.serverExecutablePath": "$HOME/.ghcup/bin/haskell-language-server-wrapper"
+  }
+}
+EOF
+echo "Updated $WORKSPACE_FILE -> $CONTEST_DIR"
+
 stack build
 
 {-# START_FILE app/Main.hs #-}
@@ -112,6 +140,7 @@ stack build
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 {-# OPTIONS_GHC -Wno-unused-matches #-}
@@ -1112,6 +1141,11 @@ rmdir $CONTEST_ID
 cp contest.acc.json app/
 ln -s ./app ./$CONTEST_ID
 
+# 親ディレクトリの .github を参照するシンボリックリンクを作成 (エージェント等を利用可能にする)
+if [ -d ../.github ] && [ ! -e .github ]; then
+  ln -s ../.github .github
+fi
+
 ./resetting a
 
 {-# START_FILE package.yaml #-}
@@ -1272,4 +1306,15 @@ else
   stack install implicit-hie
   gen-hie > hie.yaml
 fi
+
+# Remove the lib component entry (source-dirs: []) which captures all files
+# and prevents HLS from using the correct executable component
+python3 -c "
+import re
+with open('hie.yaml') as f:
+    content = f.read()
+content = re.sub(r'    - path: \"[^\"]+\"\n      component: \"[^:]+:lib\"\n\n?', '', content)
+with open('hie.yaml', 'w') as f:
+    f.write(content)
+"
 
