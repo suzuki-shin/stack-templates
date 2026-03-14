@@ -913,6 +913,17 @@ bisect ng' ok' f = worker ng' ok'
         m = (ng + ok) `div` 2
 {-# INLINE bisect #-}
 
+{- 組み合わせの数 -}
+-- k個のなかから2個選ぶ組み合わせの数
+{-# INLINE comb2 #-}
+comb2 :: Int -> Int
+comb2 k = k * (k-1) `div` 2
+
+-- k個のなかから3個選ぶ組み合わせの数
+{-# INLINE comb3 #-}
+comb3 :: Int -> Int
+comb3 k = k * (k-1) * (k-2) `div` 6
+
 {- ORMOLU_DISABLE -}
 #if FALSE
 
