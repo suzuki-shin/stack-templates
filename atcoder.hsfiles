@@ -759,12 +759,12 @@ instance Semigroup (JoinList a) where
 instance Monoid (JoinList a) where
   mempty = Empty
 
-toList :: JoinList a -> [a]
-toList jl = go jl []
-  where
-    go Empty acc = acc
-    go (Single x) acc = x : acc
-    go (Append l r) acc = go l (go r acc)
+instance Foldable JoinList where
+  foldr f z = go
+    where
+      go Empty = z
+      go (Single x) = f x z
+      go (Append l r) = foldr f (foldr f z r) l
 
 data DPProblem p sc = DPProblem
   { start :: p, -- 計算（メモ化再帰）を開始したい状態（例: dp[N] の N）。Nへ行くには->N-1が、、という順序
