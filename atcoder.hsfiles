@@ -230,41 +230,6 @@ solve x = trace (show x) def
 main :: IO ()
 main = B.interact (detokenize . encode . solve . decode . entokenize)
 
-{- Decode Patterns -}
-{-
--- Pattern: Grid (H×W)
---  Input:  H W
---          S_{1,1}...S_{1,W}
---          ...
---          S_{H,1}...S_{H,W}
-type I = Char
-type Dom = (Int, Int, [[Char]])
-decode = \case
-  nm : grid ->
-    let [n, m] = map (read @Int) $ words nm
-     in (n, m, grid)
-  _x -> invalid $ "toDom: " ++ show @Int __LINE__
--- Pattern: Int & String
--- Input: 5
---        WEEWW
-type I = Char
-type Dom (Int, String)
-decode :: [[I]] -> Dom
-decode = \ case
-    n:as:_ -> (read n, as)
-    _   -> invalid $ "toDom: " ++ show @Int __LINE__
--}
-{- Encode Pattern -}
-{-
-Pattern: リストを改行区切りにして出力
-Output: win
-        draw
-        lose
-type O = String
-type Codom = [String]
-encode = map (:[])
--}
-
 class AsToken a where
   readB :: B.ByteString -> a
   readBs :: B.ByteString -> [a]
